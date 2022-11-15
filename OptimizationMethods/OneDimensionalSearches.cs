@@ -15,7 +15,7 @@ namespace OptimizationMethods
         Minimum,
         Maximum
     }
-    static class OneDimensionalSearches
+    public static class OneDimensionalSearches
     {
         private static readonly double sqrt5 = Math.Sqrt(5.0);
         public static double Epsilon = 1E-7;
@@ -32,10 +32,11 @@ namespace OptimizationMethods
             }
             return result;
         }
-        public static void DichotomyMethod(ExtremumType type, double leftBorder, double rightBorder, Func<double, double> function, out double left, out double right)
+        public static void DichotomyMethod(ExtremumType type, double leftBorder, double rightBorder, Func<double, double> function, out double left, out double right, out int calc_count)
         {
             double delta = Epsilon / 2.0;
             double x1, x2;
+            calc_count = 0;
 
             switch(type)
             {
@@ -47,6 +48,7 @@ namespace OptimizationMethods
                         if (function(x1) > function(x2))
                             leftBorder = x1;
                         else rightBorder = x2;
+                        calc_count += 2;
                     } while (Math.Abs(leftBorder - rightBorder) > Epsilon);
                     break;
                 case ExtremumType.Maximum:
@@ -57,6 +59,7 @@ namespace OptimizationMethods
                         if (function(x1) < function(x2))
                             leftBorder = x1;
                         else rightBorder = x2;
+                        calc_count += 2;
                     } while (Math.Abs(leftBorder - rightBorder) > Epsilon);
                     break;
             }
@@ -122,47 +125,71 @@ namespace OptimizationMethods
             left = leftBorder;
             right = rightBorder;
         }
-        public static void FindInterval(ExtremumType type, double x0, Func<double, double> function, out double left, out double right)
+        public static void FindInterval(ExtremumType type, double x0, Func<double, double> function, out double left, out double right, out int calc_count)
         {
             double xk = 0.0;
             uint i = 1;
-            double delta = Epsilon;
+            double delta = 0.1;
+            calc_count = 0;
 
             switch(type)
             {
                 case ExtremumType.Minimum:
+                    if (function(x0) <= function(x0 - delta) && function(x0) <= function(x0 + delta))
+                    {
+                        left = x0 - delta;
+                        right = x0 + delta;
+                        calc_count += 4;
+                        return;
+                    }
+
                     if (function(x0) > function(x0 - delta))
                         delta *= -1;
                     xk = x0 + delta;
+                    calc_count += 2;
+
                     do
                     {
                         i++;
+                        delta *= 2.0;
                         x0 = xk;
-                        xk = x0 + (FastPow(2, i) - 1.0) * delta;
+                        //xk = x0 + (FastPow(2, i) - 1.0) * delta;
+                        xk = x0 + delta;
+                        calc_count += 2;
                     } while (function(x0) > function(xk));
                     break;
                 case ExtremumType.Maximum:
+                    if(function(x0) >= function(x0 - delta) && function(x0) >= function(x0 + delta))
+                    {
+                        left = x0 - delta;
+                        right = x0 + delta;
+                        calc_count += 4;
+                    }
+
                     if (function(x0) < function(x0 - delta))
                         delta *= -1;
+                    calc_count += 2;
                     xk = x0 + delta;
+
                     do
                     {
                         i++;
                         x0 = xk;
                         xk = x0 + (FastPow(2, i) - 1.0) * delta;
+                        calc_count += 2;
                     } while (function(x0) < function(xk));
                     break;
             }
 
             if(delta > 0)
             {
-                left = x0 + (FastPow(2, i - 2) - 1.0) * delta;
+                left = x0 - delta / 2.0;
                 right = xk;
             }
             else
             {
                 left = xk;
-                right = x0 + (FastPow(2, i - 2) - 1.0) * delta;
+                right = x0 - delta / 2.0;
             }
         }
         public static void FibonacciMethod(ExtremumType type, double leftBorder, double rightBorder, Func<double, double> function, out double left, out double right)
